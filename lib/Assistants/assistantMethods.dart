@@ -53,9 +53,9 @@ class AssistantMethods {
     directionDetails.encodedPoints = res["routes"][0]["geometry"];
 
     double distance = res["routes"][0]["legs"][0]["distance"];
-    var distanceinMiles = distance * 0.000621371192;
+    var distanceinKm = (distance / 1000).toStringAsFixed(2);
 
-    directionDetails.distanceText = "$distanceinMiles mi";
+    directionDetails.distanceText = "$distanceinKm km";
     directionDetails.distanceValue = distance;
 
     directionDetails.durationText =
@@ -63,5 +63,15 @@ class AssistantMethods {
     directionDetails.durationValue = res["routes"][0]["legs"][0]["duration"];
 
     return directionDetails;
+  }
+
+  static int calculateFares(DirectionDetails directionDetails) {
+    double timeTravelledFare = (directionDetails.durationValue / 60) * 0.20;
+    double distanceTravelledFare =
+        (directionDetails.distanceValue / 1000) * 0.20;
+
+    double totalFareAmount = timeTravelledFare + distanceTravelledFare;
+
+    return totalFareAmount.truncate();
   }
 }

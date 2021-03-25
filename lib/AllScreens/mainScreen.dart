@@ -1,15 +1,18 @@
 import 'dart:async';
 
+import 'package:animated_text_kit/animated_text_kit.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:rider_app/AllScreens/searchScreen.dart';
 import 'package:rider_app/AllWidgets/Divider.dart';
 import 'package:rider_app/AllWidgets/progressDialog.dart';
-import 'package:rider_app/Assistants/AssistantMethods.dart';
+import 'package:rider_app/Assistants/assistantMethods.dart';
 import 'package:rider_app/DataHandler/appData.dart';
+import 'package:rider_app/Models/directionDetails.dart';
 
 class MainScreen extends StatefulWidget {
   static const String idScreen = "mainScreen";
@@ -18,7 +21,7 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   static final CameraPosition _kGooglePlex =
       CameraPosition(target: LatLng(37.42796, -122.0857), zoom: 14.4746);
 
@@ -34,6 +37,53 @@ class _MainScreenState extends State<MainScreen> {
 
   Set<Marker> markersSet = {};
   Set<Circle> circlesSet = {};
+
+  double bottomPaddingOfMap = 0.0;
+
+  double rideDetailsContainerHeight = 0.0;
+  double requestRideContainerHeight = 0.0;
+  double searchContainerHeight = 300.0;
+
+  DirectionDetails tripDirectionDetails;
+
+  bool drawerOpen = true;
+
+  void displayRequestRideContainer() {
+    setState(() {
+      requestRideContainerHeight = 250.0;
+      rideDetailsContainerHeight = 0;
+
+      bottomPaddingOfMap = 230.0;
+      drawerOpen = true;
+    });
+  }
+
+  void resetApp() {
+    setState(() {
+      drawerOpen = true;
+      searchContainerHeight = 300.0;
+      rideDetailsContainerHeight = 0;
+      bottomPaddingOfMap = 230.0;
+
+      polyLineSet.clear();
+      markersSet.clear();
+      circlesSet.clear();
+      pLineCoordinates.clear();
+    });
+
+    locatePosition();
+  }
+
+  void displayRideDetailsContainer() async {
+    await getPlaceDirection();
+
+    setState(() {
+      searchContainerHeight = 0;
+      rideDetailsContainerHeight = 240.0;
+      bottomPaddingOfMap = 230.0;
+      drawerOpen = false;
+    });
+  }
 
   void locatePosition() async {
     Position position = await Geolocator.getCurrentPosition(
@@ -52,8 +102,6 @@ class _MainScreenState extends State<MainScreen> {
         await AssistantMethods.searchCoordinateAddress(position, context);
     print("This is your address : $address");
   }
-
-  double bottomPaddingOfMap = 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -172,11 +220,15 @@ class _MainScreenState extends State<MainScreen> {
 
           //Hamburger Button for drawer
           Positioned(
-            top: 45.0,
+            top: 38.0,
             left: 22.0,
             child: GestureDetector(
               onTap: () {
-                scaffoldKey.currentState.openDrawer();
+                if (drawerOpen) {
+                  scaffoldKey.currentState.openDrawer();
+                } else {
+                  resetApp();
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -192,7 +244,7 @@ class _MainScreenState extends State<MainScreen> {
                 child: CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.menu,
+                    drawerOpen ? Icons.menu : Icons.close,
                     color: Colors.black,
                   ),
                   radius: 20.0,
@@ -204,138 +256,383 @@ class _MainScreenState extends State<MainScreen> {
             left: 0.0,
             right: 0.0,
             bottom: 0.0,
-            child: Container(
-              height: 300.0,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(18.0),
-                    topRight: Radius.circular(18.0)),
-                boxShadow: [
-                  BoxShadow(
+            child: AnimatedSize(
+              vsync: this,
+              curve: Curves.bounceIn,
+              duration: Duration(milliseconds: 160),
+              child: Container(
+                height: searchContainerHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(18.0),
+                      topRight: Radius.circular(18.0)),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black,
+                        blurRadius: 16.0,
+                        spreadRadius: 0.5,
+                        offset: Offset(0.7, 0.7))
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0, vertical: 18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 6.0,
+                      ),
+                      Text(
+                        "Hi there",
+                        style: TextStyle(fontSize: 12.0),
+                      ),
+                      Text(
+                        "Where to?",
+                        style:
+                            TextStyle(fontSize: 20.0, fontFamily: "Brand Bold"),
+                      ),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SearchScreen(),
+                              ));
+
+                          var finalPos =
+                              Provider.of<AppData>(context, listen: false)
+                                  .dropOffLocation;
+
+                          print("Final POs ${finalPos.latitude}");
+
+                          if (finalPos != null) {
+                            displayRideDetailsContainer();
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5.0),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 6.0,
+                                  spreadRadius: 0.5,
+                                  offset: Offset(0.7, 0.7))
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search,
+                                  color: Colors.blueAccent,
+                                ),
+                                SizedBox(
+                                  width: 10.0,
+                                ),
+                                Text("Search Drop Off")
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 24.0,
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.home, color: Colors.grey),
+                          SizedBox(width: 12.0),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(Provider.of<AppData>(context)
+                                          .pickUpLocation !=
+                                      null
+                                  ? Provider.of<AppData>(context)
+                                      .pickUpLocation
+                                      .placeName
+                                  : "Add Home"),
+                              SizedBox(height: 4.0),
+                              Text(
+                                "Your Home Address",
+                                style: TextStyle(
+                                    color: Colors.black54, fontSize: 12.0),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10.0,
+                      ),
+                      DividerWidget(),
+                      SizedBox(
+                        height: 16.0,
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.work, color: Colors.grey),
+                          SizedBox(width: 12.0),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Add Work"),
+                              SizedBox(height: 4.0),
+                              Text(
+                                "Your Office address",
+                                style: TextStyle(
+                                    color: Colors.black54, fontSize: 12.0),
+                              )
+                            ],
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+            child: AnimatedSize(
+              vsync: this,
+              curve: Curves.bounceIn,
+              duration: Duration(milliseconds: 160),
+              child: Container(
+                height: rideDetailsContainerHeight,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(16.0),
+                    topRight: Radius.circular(16.0),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
                       color: Colors.black,
                       blurRadius: 16.0,
                       spreadRadius: 0.5,
-                      offset: Offset(0.7, 0.7))
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 18.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 6.0,
+                      offset: Offset(0.7, 0.7),
                     ),
-                    Text(
-                      "Hi there",
-                      style: TextStyle(fontSize: 12.0),
-                    ),
-                    Text(
-                      "Where to?",
-                      style:
-                          TextStyle(fontSize: 20.0, fontFamily: "Brand Bold"),
-                    ),
-                    SizedBox(
-                      height: 20.0,
-                    ),
-                    GestureDetector(
-                      onTap: () async {
-                        await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SearchScreen(),
-                            ));
-
-                        var finalPos =
-                            Provider.of<AppData>(context, listen: false)
-                                .dropOffLocation;
-                        print("Final POs ${finalPos.latitude}");
-                        if (finalPos != null) {
-                          await getPlaceDirection();
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5.0),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black54,
-                                blurRadius: 6.0,
-                                spreadRadius: 0.5,
-                                offset: Offset(0.7, 0.7))
-                          ],
-                        ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 17.0),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        color: Colors.tealAccent[100],
                         child: Padding(
-                          padding: const EdgeInsets.all(12.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                          ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.search,
-                                color: Colors.blueAccent,
+                              Image.asset(
+                                "images/taxi.png",
+                                height: 70.0,
+                                width: 80.0,
                               ),
                               SizedBox(
-                                width: 10.0,
+                                width: 16.0,
                               ),
-                              Text("Search Drop Off")
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Car",
+                                    style: TextStyle(
+                                      fontSize: 18.0,
+                                      fontFamily: "Brand Bold",
+                                    ),
+                                  ),
+                                  Text(
+                                    (tripDirectionDetails != null)
+                                        ? tripDirectionDetails.distanceText
+                                        : "",
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Expanded(
+                                child: Container(),
+                              ),
+                              Text(
+                                (tripDirectionDetails != null)
+                                    ? "\$${AssistantMethods.calculateFares(tripDirectionDetails)}"
+                                    : "",
+                                style: TextStyle(
+                                  fontFamily: "Brand Bold",
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.0,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              FontAwesomeIcons.moneyCheckAlt,
+                              size: 18.0,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(
+                              width: 16.0,
+                            ),
+                            Text("Cash"),
+                            SizedBox(
+                              width: 6.0,
+                            ),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Colors.black54,
+                              size: 16.0,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 24.0,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                        ),
+                        child: RaisedButton(
+                          onPressed: () {
+                            displayRequestRideContainer();
+                          },
+                          color: Theme.of(context).accentColor,
+                          child: Padding(
+                            padding: EdgeInsets.all(17.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Request",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                                Icon(
+                                  FontAwesomeIcons.taxi,
+                                  color: Colors.white,
+                                  size: 26.0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  topRight: Radius.circular(16.0),
+                ),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    spreadRadius: 0.5,
+                    blurRadius: 16.0,
+                    color: Colors.black54,
+                    offset: Offset(0.7, 0.7),
+                  ),
+                ],
+              ),
+              height: requestRideContainerHeight,
+              child: Padding(
+                padding: EdgeInsets.all(30.0),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 12.0,
                     ),
                     SizedBox(
-                      height: 24.0,
+                      width: double.infinity,
+                      child: ColorizeAnimatedTextKit(
+                        text: [
+                          "Requesting a Ride",
+                          "Please wait...",
+                          "Finding a Driver...",
+                        ],
+                        textStyle:
+                            TextStyle(fontSize: 55.0, fontFamily: "Signatra"),
+                        colors: [
+                          Colors.green,
+                          Colors.purple,
+                          Colors.pink,
+                          Colors.blue,
+                          Colors.yellow,
+                          Colors.red
+                        ],
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    Row(
-                      children: [
-                        Icon(Icons.home, color: Colors.grey),
-                        SizedBox(width: 12.0),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(Provider.of<AppData>(context).pickUpLocation !=
-                                    null
-                                ? Provider.of<AppData>(context)
-                                    .pickUpLocation
-                                    .placeName
-                                : "Add Home"),
-                            SizedBox(height: 4.0),
-                            Text(
-                              "Your Home Address",
-                              style: TextStyle(
-                                  color: Colors.black54, fontSize: 12.0),
-                            )
-                          ],
-                        )
-                      ],
+                    SizedBox(
+                      height: 22.0,
+                    ),
+                    Container(
+                      height: 60.0,
+                      width: 60.0,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(36.0),
+                        border: Border.all(
+                          width: 2.0,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 26.0,
+                      ),
                     ),
                     SizedBox(
                       height: 10.0,
                     ),
-                    DividerWidget(),
-                    SizedBox(
-                      height: 16.0,
+                    Container(
+                      width: double.infinity,
+                      child: Text(
+                        "Cancel Ride",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                        ),
+                      ),
                     ),
-                    Row(
-                      children: [
-                        Icon(Icons.work, color: Colors.grey),
-                        SizedBox(width: 12.0),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Add Work"),
-                            SizedBox(height: 4.0),
-                            Text(
-                              "Your Office address",
-                              style: TextStyle(
-                                  color: Colors.black54, fontSize: 12.0),
-                            )
-                          ],
-                        )
-                      ],
-                    )
                   ],
                 ),
               ),
@@ -362,6 +659,10 @@ class _MainScreenState extends State<MainScreen> {
 
     var details = await AssistantMethods.obtainPlaceDirectionDetails(
         pickUpLatLng, dropOffLatLng);
+
+    setState(() {
+      tripDirectionDetails = details;
+    });
 
     Navigator.pop(context);
 
