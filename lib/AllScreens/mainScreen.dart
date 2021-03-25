@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:firebase_database/firebase_database.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -13,6 +14,7 @@ import 'package:rider_app/AllWidgets/progressDialog.dart';
 import 'package:rider_app/Assistants/assistantMethods.dart';
 import 'package:rider_app/DataHandler/appData.dart';
 import 'package:rider_app/Models/directionDetails.dart';
+import 'package:rider_app/configMaps.dart';
 
 class MainScreen extends StatefulWidget {
   static const String idScreen = "mainScreen";
@@ -48,6 +50,51 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   bool drawerOpen = true;
 
+  DatabaseReference rideRequestRef;
+
+  @override
+  void initState() {
+    super.initState();
+
+    AssistantMethods.getCurrentUserInfo();
+  }
+
+  void saveRiderRequest() {
+    rideRequestRef =
+        FirebaseDatabase.instance.reference().child("Ride Requests").push();
+
+    var pickUp = Provider.of<AppData>(context, listen: false).pickUpLocation;
+    var dropOff = Provider.of<AppData>(context, listen: false).dropOffLocation;
+
+    Map pickUpLocMap = {
+      "latitude": pickUp.latitude.toString(),
+      "longitude": pickUp.longitude.toString()
+    };
+
+    Map dropOffLocMap = {
+      "latitude": dropOff.latitude.toString(),
+      "longitude": dropOff.longitude.toString()
+    };
+
+    Map rideInfoMap = {
+      "driver_id": "waiting",
+      "payment_method": "cash",
+      "pickup": pickUpLocMap,
+      "dropoff": dropOffLocMap,
+      "created_at": DateTime.now().toString(),
+      "rider_name": userCurrentInfo.name,
+      "rider_phone": userCurrentInfo.phone,
+      "pickup_address": pickUp.placeName,
+      "dropoff_address": dropOff.placeName
+    };
+
+    rideRequestRef.set(rideInfoMap);
+  }
+
+  void cancelRideRequest() {
+    rideRequestRef.remove();
+  }
+
   void displayRequestRideContainer() {
     setState(() {
       requestRideContainerHeight = 250.0;
@@ -56,6 +103,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       bottomPaddingOfMap = 230.0;
       drawerOpen = true;
     });
+
+    saveRiderRequest();
   }
 
   void resetApp() {
@@ -63,6 +112,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       drawerOpen = true;
       searchContainerHeight = 300.0;
       rideDetailsContainerHeight = 0;
+      requestRideContainerHeight = 0;
       bottomPaddingOfMap = 230.0;
 
       polyLineSet.clear();
@@ -604,20 +654,26 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                     SizedBox(
                       height: 22.0,
                     ),
-                    Container(
-                      height: 60.0,
-                      width: 60.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(36.0),
-                        border: Border.all(
-                          width: 2.0,
-                          color: Colors.grey[300],
+                    GestureDetector(
+                      onTap: () {
+                        cancelRideRequest();
+                        resetApp();
+                      },
+                      child: Container(
+                        height: 60.0,
+                        width: 60.0,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(36.0),
+                          border: Border.all(
+                            width: 2.0,
+                            color: Colors.grey[300],
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 26.0,
+                        child: Icon(
+                          Icons.close,
+                          size: 26.0,
+                        ),
                       ),
                     ),
                     SizedBox(
