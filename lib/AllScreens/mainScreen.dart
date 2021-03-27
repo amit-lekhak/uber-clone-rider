@@ -22,6 +22,7 @@ import 'package:rider_app/DataHandler/appData.dart';
 import 'package:rider_app/Models/directionDetails.dart';
 import 'package:rider_app/Models/nearByAvailableDrivers.dart';
 import 'package:rider_app/configMaps.dart';
+import 'package:rider_app/main.dart';
 
 class MainScreen extends StatefulWidget {
   static const String idScreen = "mainScreen";
@@ -952,6 +953,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     }
 
     var driver = availableDrivers[0];
+    notifyDriver(driver);
     availableDrivers.removeAt(0);
   }
 
@@ -962,5 +964,20 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         builder: (BuildContext context) {
           return NoDriverAvailableDialog();
         });
+  }
+
+  void notifyDriver(NearByAvailableDrivers driver) {
+    driversRef.child(driver.key).child("newRide").set(rideRequestRef.key);
+
+    driversRef
+        .child(driver.key)
+        .child("token")
+        .once()
+        .then((DataSnapshot snap) {
+      String token = snap.value.toString();
+
+      AssistantMethods.sendNotificationToDriver(
+          token, context, rideRequestRef.key);
+    });
   }
 }
