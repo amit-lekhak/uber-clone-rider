@@ -14,9 +14,10 @@ import 'package:provider/provider.dart';
 import 'package:rider_app/AllScreens/loginScreen.dart';
 import 'package:rider_app/AllScreens/searchScreen.dart';
 import 'package:rider_app/AllWidgets/Divider.dart';
+import 'package:rider_app/AllWidgets/noDriverAvailableDialog.dart';
 import 'package:rider_app/AllWidgets/progressDialog.dart';
 import 'package:rider_app/Assistants/assistantMethods.dart';
-import 'package:rider_app/Assistants/geofireAssistant.dart';
+import 'package:rider_app/Assistants/geoFireAssistant.dart';
 import 'package:rider_app/DataHandler/appData.dart';
 import 'package:rider_app/Models/directionDetails.dart';
 import 'package:rider_app/Models/nearByAvailableDrivers.dart';
@@ -61,6 +62,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   bool nearByAvailableDriverKeysLoaded = false;
 
   BitmapDescriptor nearByIcon;
+
+  List<NearByAvailableDrivers> availableDrivers;
 
   @override
   void initState() {
@@ -603,6 +606,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         child: RaisedButton(
                           onPressed: () {
                             displayRequestRideContainer();
+                            availableDrivers =
+                                GeoFireAssistant.nearByAvailableDriversList;
+
+                            searchNearestDriver();
                           },
                           color: Theme.of(context).accentColor,
                           child: Padding(
@@ -934,5 +941,26 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         nearByIcon = value;
       });
     }
+  }
+
+  void searchNearestDriver() {
+    if (availableDrivers.length == 0) {
+      cancelRideRequest();
+      resetApp();
+      noDriverFound();
+      return;
+    }
+
+    var driver = availableDrivers[0];
+    availableDrivers.removeAt(0);
+  }
+
+  void noDriverFound() {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return NoDriverAvailableDialog();
+        });
   }
 }
