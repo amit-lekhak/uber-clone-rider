@@ -68,6 +68,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   String state = "normal";
 
+  double driverDetailsContainerHeight = 0;
+
+  StreamSubscription<Event> rideStreamSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +109,36 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     };
 
     rideRequestRef.set(rideInfoMap);
+
+    rideStreamSubscription = rideRequestRef.onValue.listen((event) {
+      if (event.snapshot.value == null) return;
+
+      if (event.snapshot.value["car_details"] != null) {
+        setState(() {
+          driverCarDetails = event.snapshot.value["car_details"].toString();
+        });
+      }
+
+       if (event.snapshot.value["driver_name"] != null) {
+        setState(() {
+          driverName = event.snapshot.value["driver_name"].toString();
+        });
+      }
+
+       if (event.snapshot.value["driver_phone"] != null) {
+        setState(() {
+          driverPhone = event.snapshot.value["driver_phone"].toString();
+        });
+      }
+
+      if (event.snapshot.value["status"] != null) {
+        statusRide = event.snapshot.value["status"].toString();
+      }
+
+      if (statusRide == "accepted") {
+        displayDriverDetailsContainer();
+      }
+    });
   }
 
   void cancelRideRequest() {
@@ -117,7 +151,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   void displayRequestRideContainer() {
     setState(() {
       requestRideContainerHeight = 250.0;
-      rideDetailsContainerHeight = 0;
+      rideDetailsContainerHeight = 0.0;
 
       bottomPaddingOfMap = 230.0;
       drawerOpen = true;
@@ -126,12 +160,22 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     saveRiderRequest();
   }
 
+  void displayDriverDetailsContainer() {
+    setState(() {
+      requestRideContainerHeight = 0.0;
+      rideDetailsContainerHeight = 0.0;
+
+      bottomPaddingOfMap = 280.0;
+      driverDetailsContainerHeight = 310.0;
+    });
+  }
+
   void resetApp() {
     setState(() {
       drawerOpen = true;
       searchContainerHeight = 300.0;
-      rideDetailsContainerHeight = 0;
-      requestRideContainerHeight = 0;
+      rideDetailsContainerHeight = 0.0;
+      requestRideContainerHeight = 0.0;
       bottomPaddingOfMap = 230.0;
 
       polyLineSet.clear();
@@ -147,7 +191,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     await getPlaceDirection();
 
     setState(() {
-      searchContainerHeight = 0;
+      searchContainerHeight = 0.0;
       rideDetailsContainerHeight = 240.0;
       bottomPaddingOfMap = 230.0;
       drawerOpen = false;
@@ -285,6 +329,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       ),
       body: Stack(
         children: [
+          /** Google Map */
           GoogleMap(
             padding: EdgeInsets.only(bottom: bottomPaddingOfMap),
             initialCameraPosition: _kGooglePlex,
@@ -308,7 +353,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             },
           ),
 
-          //Hamburger Button for drawer
+          /** Hamburger Button for drawer */
           Positioned(
             top: 38.0,
             left: 22.0,
@@ -342,6 +387,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+
+          /** Search UI */
+
           Positioned(
             left: 0.0,
             right: 0.0,
@@ -491,6 +539,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+
+          /** Ride Details */
+
           Positioned(
             bottom: 0.0,
             left: 0.0,
@@ -650,6 +701,174 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+
+          /** Cancel UI */
+
+          Positioned(
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  topRight: Radius.circular(16.0),
+                ),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    spreadRadius: 0.5,
+                    blurRadius: 16.0,
+                    color: Colors.black54,
+                    offset: Offset(0.7, 0.7),
+                  ),
+                ],
+              ),
+              height: driverDetailsContainerHeight,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 18.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 6.0,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          rideStatus,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20.0,
+                            fontFamily: "Brand Bold",
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 22.0,
+                    ),
+                    Divider(
+                      height: 2.0,
+                      thickness: 2.0,
+                    ),
+
+                    SizedBox(
+                      height: 22.0,
+                    ),
+
+                    Text(
+                      driverCarDetails,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      driverName,
+                      style: TextStyle(fontSize: 20.0),
+                    ),
+                    SizedBox(
+                      height: 22.0,
+                    ),
+                    Divider(
+                      height: 2.0,
+                      thickness: 2.0,
+                    ),
+                    SizedBox(
+                      height: 22.0,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 55.0,
+                              width: 55.0,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(26.0),
+                                ),
+                                border: Border.all(
+                                  width: 2.0,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              child: Icon(Icons.call),
+                            ),
+                            SizedBox(
+                              height: 10.0,
+                            ),
+                            Text(
+                              "Call",
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 55.0,
+                              width: 55.0,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(26.0),
+                                ),
+                                border: Border.all(
+                                  width: 2.0,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              child: Icon(Icons.list),
+                            ),
+                            SizedBox(
+                              height: 10.0,
+                            ),
+                            Text(
+                              "Details",
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 55.0,
+                              width: 55.0,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(26.0),
+                                ),
+                                border: Border.all(
+                                  width: 2.0,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              child: Icon(Icons.close),
+                            ),
+                            SizedBox(
+                              height: 10.0,
+                            ),
+                            Text(
+                              "Cancel",
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          /** Driver Assigned Driver Info */
+
           Positioned(
             bottom: 0.0,
             left: 0.0,
