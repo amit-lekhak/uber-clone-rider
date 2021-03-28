@@ -72,6 +72,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   StreamSubscription<Event> rideStreamSubscription;
 
+  bool isRequestingPositionDetails = false;
+
   @override
   void initState() {
     super.initState();
@@ -113,32 +115,100 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     rideStreamSubscription = rideRequestRef.onValue.listen((event) {
       if (event.snapshot.value == null) return;
 
+      if (event.snapshot.value["status"] != null) {
+        statusRide = event.snapshot.value["status"].toString();
+      }
+
       if (event.snapshot.value["car_details"] != null) {
         setState(() {
           driverCarDetails = event.snapshot.value["car_details"].toString();
         });
       }
 
-       if (event.snapshot.value["driver_name"] != null) {
+      if (event.snapshot.value["driver_name"] != null) {
         setState(() {
           driverName = event.snapshot.value["driver_name"].toString();
         });
       }
 
-       if (event.snapshot.value["driver_phone"] != null) {
+      if (event.snapshot.value["driver_phone"] != null) {
         setState(() {
           driverPhone = event.snapshot.value["driver_phone"].toString();
         });
       }
 
-      if (event.snapshot.value["status"] != null) {
-        statusRide = event.snapshot.value["status"].toString();
+      if (event.snapshot.value["driver_location"] != null) {
+        double driverLat = double.parse(
+            event.snapshot.value["driver_location"]["latitude"].toString());
+        double driverLng = double.parse(
+            event.snapshot.value["driver_location"]["longitude"].toString());
+
+        LatLng driverCurrentLocation = LatLng(driverLat, driverLng);
+
+        if (statusRide == "accepted") {
+          upateRideTimeToPickUpLoc(driverCurrentLocation);
+        } else if (statusRide == "onride") {
+          upateRideTimeToDropOffLoc(driverCurrentLocation);
+        } else if (statusRide == "arrived") {
+          setState(() {
+            rideStatus = "Driver has arrived";
+          });
+        }
       }
 
       if (statusRide == "accepted") {
         displayDriverDetailsContainer();
+        Geofire.stopListener();
+        deleteGeoFireMarkers();
       }
     });
+  }
+
+  void deleteGeoFireMarkers() {
+    setState(() {
+      markersSet
+          .removeWhere((element) => element.markerId.value.contains("driver"));
+    });
+  }
+
+  void upateRideTimeToPickUpLoc(LatLng driverCurrentLoc) async {
+    if (!isRequestingPositionDetails) {
+      isRequestingPositionDetails = true;
+
+      var riderPosition =
+          LatLng(currentPosition.latitude, currentPosition.longitude);
+
+      var details = await AssistantMethods.obtainPlaceDirectionDetails(
+          driverCurrentLoc, riderPosition);
+
+      if (details == null) return;
+
+      setState(() {
+        rideStatus = "Driver is arriving - ${details.durationText}";
+      });
+
+      isRequestingPositionDetails = false;
+    }
+  }
+
+  void upateRideTimeToDropOffLoc(LatLng driverCurrentLoc) async {
+    if (!isRequestingPositionDetails) {
+      isRequestingPositionDetails = true;
+
+      var dropOff = Provider.of<AppData>(context,listen: false).dropOffLocation;
+      var dropOffLatLng = LatLng(dropOff.latitude, dropOff.longitude);
+
+      var details = await AssistantMethods.obtainPlaceDirectionDetails(
+          driverCurrentLoc, dropOffLatLng);
+
+      if (details == null) return;
+
+      setState(() {
+        rideStatus = "Moving to Destination - ${details.durationText}";
+      });
+
+      isRequestingPositionDetails = false;
+    }
   }
 
   void cancelRideRequest() {
@@ -488,23 +558,25 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         children: [
                           Icon(Icons.home, color: Colors.grey),
                           SizedBox(width: 12.0),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(Provider.of<AppData>(context)
-                                          .pickUpLocation !=
-                                      null
-                                  ? Provider.of<AppData>(context)
-                                      .pickUpLocation
-                                      .placeName
-                                  : "Add Home"),
-                              SizedBox(height: 4.0),
-                              Text(
-                                "Your Home Address",
-                                style: TextStyle(
-                                    color: Colors.black54, fontSize: 12.0),
-                              )
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(Provider.of<AppData>(context)
+                                            .pickUpLocation !=
+                                        null
+                                    ? Provider.of<AppData>(context)
+                                        .pickUpLocation
+                                        .placeName
+                                    : "Add Home"),
+                                SizedBox(height: 4.0),
+                                Text(
+                                  "Your Home Address",
+                                  style: TextStyle(
+                                      color: Colors.black54, fontSize: 12.0),
+                                )
+                              ],
+                            ),
                           )
                         ],
                       ),
@@ -519,17 +591,19 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         children: [
                           Icon(Icons.work, color: Colors.grey),
                           SizedBox(width: 12.0),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Add Work"),
-                              SizedBox(height: 4.0),
-                              Text(
-                                "Your Office address",
-                                style: TextStyle(
-                                    color: Colors.black54, fontSize: 12.0),
-                              )
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Add Work"),
+                                SizedBox(height: 4.0),
+                                Text(
+                                  "Your Office address",
+                                  style: TextStyle(
+                                      color: Colors.black54, fontSize: 12.0),
+                                )
+                              ],
+                            ),
                           )
                         ],
                       )
@@ -756,11 +830,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       height: 2.0,
                       thickness: 2.0,
                     ),
-
                     SizedBox(
                       height: 22.0,
                     ),
-
                     Text(
                       driverCarDetails,
                       style: TextStyle(
