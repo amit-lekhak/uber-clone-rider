@@ -1,6 +1,6 @@
 class DirectionDetails {
-  double distanceValue;
-  double durationValue;
+  int distanceValue;
+  int durationValue;
   String distanceText;
   String durationText;
   String encodedPoints;

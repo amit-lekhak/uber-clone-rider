@@ -1010,12 +1010,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          rideStatus,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20.0,
-                            fontFamily: "Brand Bold",
+                        Expanded(
+                          child: Text(
+                            rideStatus,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20.0,
+                              fontFamily: "Brand Bold",
+                            ),
                           ),
                         ),
                       ],

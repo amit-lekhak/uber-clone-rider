@@ -59,15 +59,22 @@ class AssistantMethods {
 
     directionDetails.encodedPoints = res["routes"][0]["geometry"];
 
-    double distance = res["routes"][0]["legs"][0]["distance"];
+    int distance = (res["routes"][0]["legs"][0]["distance"]).toInt();
     var distanceinKm = (distance / 1000).toStringAsFixed(2);
 
     directionDetails.distanceText = "$distanceinKm km";
     directionDetails.distanceValue = distance;
 
-    directionDetails.durationText =
-        "${res["routes"][0]["legs"][0]["duration"]} s";
-    directionDetails.durationValue = res["routes"][0]["legs"][0]["duration"];
+    int seconds = (res["routes"][0]["legs"][0]["duration"]).toInt();
+
+    directionDetails.durationValue = seconds;
+
+    Duration duration = Duration(seconds: seconds);
+
+    String durationText =
+        "${duration.inHours}h:${duration.inMinutes.remainder(60)}m:${(duration.inSeconds.remainder(60))}s";
+
+    directionDetails.durationText = durationText;
 
     return directionDetails;
   }
