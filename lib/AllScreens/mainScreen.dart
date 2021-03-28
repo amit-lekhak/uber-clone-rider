@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:rider_app/AllScreens/loginScreen.dart';
 import 'package:rider_app/AllScreens/searchScreen.dart';
 import 'package:rider_app/AllWidgets/Divider.dart';
+import 'package:rider_app/AllWidgets/collectFareDialog.dart';
 import 'package:rider_app/AllWidgets/noDriverAvailableDialog.dart';
 import 'package:rider_app/AllWidgets/progressDialog.dart';
 import 'package:rider_app/Assistants/assistantMethods.dart';
@@ -112,7 +113,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     rideRequestRef.set(rideInfoMap);
 
-    rideStreamSubscription = rideRequestRef.onValue.listen((event) {
+    rideStreamSubscription = rideRequestRef.onValue.listen((event) async {
       if (event.snapshot.value == null) return;
 
       if (event.snapshot.value["status"] != null) {
@@ -161,6 +162,29 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         Geofire.stopListener();
         deleteGeoFireMarkers();
       }
+
+      if (statusRide == "ended") {
+        if (event.snapshot.value["fares"] != null) {
+          int fare = int.parse(event.snapshot.value["fares"].toString());
+
+          var res = await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => CollectFareDialog(
+              paymentMethod: "cash",
+              fareAmount: fare,
+            ),
+          );
+
+          if (res == "close") {
+            rideRequestRef.onDisconnect();
+            rideRequestRef = null;
+            rideStreamSubscription.cancel();
+            rideStreamSubscription = null;
+            resetApp();
+          }
+        }
+      }
     });
   }
 
@@ -195,7 +219,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     if (!isRequestingPositionDetails) {
       isRequestingPositionDetails = true;
 
-      var dropOff = Provider.of<AppData>(context,listen: false).dropOffLocation;
+      var dropOff =
+          Provider.of<AppData>(context, listen: false).dropOffLocation;
       var dropOffLatLng = LatLng(dropOff.latitude, dropOff.longitude);
 
       var details = await AssistantMethods.obtainPlaceDirectionDetails(
@@ -252,6 +277,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       markersSet.clear();
       circlesSet.clear();
       pLineCoordinates.clear();
+
+      statusRide = "";
+      driverName = "";
+      driverPhone = "";
+      driverCarDetails = "";
+      rideStatus = "Driver is arriving";
+      driverDetailsContainerHeight = 0.0;
     });
 
     locatePosition();
