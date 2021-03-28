@@ -24,6 +24,7 @@ import 'package:rider_app/Models/directionDetails.dart';
 import 'package:rider_app/Models/nearByAvailableDrivers.dart';
 import 'package:rider_app/configMaps.dart';
 import 'package:rider_app/main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MainScreen extends StatefulWidget {
   static const String idScreen = "mainScreen";
@@ -888,80 +889,38 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: 55.0,
-                              width: 55.0,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(26.0),
-                                ),
-                                border: Border.all(
-                                  width: 2.0,
-                                  color: Colors.grey,
-                                ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.0,
+                          ),
+                          child: RaisedButton(
+                            onPressed: () {
+                              launch("tel://$driverPhone");
+                            },
+                            color: Colors.pink,
+                            child: Padding(
+                              padding: EdgeInsets.all(17.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    "Call Driver",
+                                    style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.call,
+                                    color: Colors.white,
+                                    size: 26.0,
+                                  ),
+                                ],
                               ),
-                              child: Icon(Icons.call),
                             ),
-                            SizedBox(
-                              height: 10.0,
-                            ),
-                            Text(
-                              "Call",
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: 55.0,
-                              width: 55.0,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(26.0),
-                                ),
-                                border: Border.all(
-                                  width: 2.0,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              child: Icon(Icons.list),
-                            ),
-                            SizedBox(
-                              height: 10.0,
-                            ),
-                            Text(
-                              "Details",
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: 55.0,
-                              width: 55.0,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(26.0),
-                                ),
-                                border: Border.all(
-                                  width: 2.0,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              child: Icon(Icons.close),
-                            ),
-                            SizedBox(
-                              height: 10.0,
-                            ),
-                            Text(
-                              "Cancel",
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     )
