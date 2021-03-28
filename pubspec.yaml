@@ -41,6 +41,7 @@ dependencies:
   animated_text_kit:
   flutter_geofire:
   url_launcher:
+  smooth_star_rating:
 
 dev_dependencies:
   flutter_test:

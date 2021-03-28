@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:html';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:rider_app/AllScreens/loginScreen.dart';
+import 'package:rider_app/AllScreens/ratingScreen.dart';
 import 'package:rider_app/AllScreens/searchScreen.dart';
 import 'package:rider_app/AllWidgets/Divider.dart';
 import 'package:rider_app/AllWidgets/collectFareDialog.dart';
@@ -177,7 +179,21 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             ),
           );
 
+          String driverId = "";
+
           if (res == "close") {
+            if (event.snapshot.value["driver_id"] != null) {
+              driverId = event.snapshot.value["driver_id"].toString();
+            }
+
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => RatingScreen(
+                  driverId: driverId,
+                ),
+              ),
+            );
+
             rideRequestRef.onDisconnect();
             rideRequestRef = null;
             rideStreamSubscription.cancel();
