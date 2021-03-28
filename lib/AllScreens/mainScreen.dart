@@ -77,6 +77,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   bool isRequestingPositionDetails = false;
 
+  String uName = "";
+
   @override
   void initState() {
     super.initState();
@@ -110,7 +112,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       "rider_name": userCurrentInfo.name,
       "rider_phone": userCurrentInfo.phone,
       "pickup_address": pickUp.placeName,
-      "dropoff_address": dropOff.placeName
+      "dropoff_address": dropOff.placeName,
+      "ride_type": carRideType,
     };
 
     rideRequestRef.set(rideInfoMap);
@@ -334,6 +337,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     print("This is your address : $address");
 
     initGeoFireListener();
+
+    uName = userCurrentInfo.name;
   }
 
   @override
@@ -370,7 +375,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Profile Name",
+                            uName,
                             style: TextStyle(
                                 fontSize: 16.0, fontFamily: "Brand Bold"),
                           ),
@@ -701,6 +706,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
                           setState(() {
                             state = "requesting";
+                            carRideType = "bike";
                           });
 
                           displayRequestRideContainer();
@@ -751,7 +757,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                                 ),
                                 Text(
                                   (tripDirectionDetails != null)
-                                      ? "\$${AssistantMethods.calculateFares(tripDirectionDetails)}"
+                                      ? "\$${(AssistantMethods.calculateFares(tripDirectionDetails) / 2)}"
                                       : "",
                                   style: TextStyle(
                                     fontFamily: "Brand Bold",
@@ -781,6 +787,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
                           setState(() {
                             state = "requesting";
+                            carRideType = "uber-go";
                           });
 
                           displayRequestRideContainer();
@@ -861,6 +868,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
                           setState(() {
                             state = "requesting";
+                            carRideType = "uber-x";
                           });
 
                           displayRequestRideContainer();
@@ -911,7 +919,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                                 ),
                                 Text(
                                   (tripDirectionDetails != null)
-                                      ? "\$${AssistantMethods.calculateFares(tripDirectionDetails)}"
+                                      ? "\$${(AssistantMethods.calculateFares(tripDirectionDetails)) * 2}"
                                       : "",
                                   style: TextStyle(
                                     fontFamily: "Brand Bold",
@@ -1400,8 +1408,27 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     }
 
     var driver = availableDrivers[0];
-    notifyDriver(driver);
-    availableDrivers.removeAt(0);
+
+    driversRef
+        .child(driver.key)
+        .child("car_details")
+        .child("type")
+        .once()
+        .then((DataSnapshot snap) {
+      if (snap.value != null) {
+        String carType = snap.value.toString();
+
+        if (carType == carRideType) {
+          notifyDriver(driver);
+          availableDrivers.removeAt(0);
+        } else {
+          displayToastMessage(
+              "$carRideType driver not available. Try again", context);
+        }
+      } else {
+        displayToastMessage("No ride found. Try again", context);
+      }
+    });
   }
 
   void noDriverFound() {
